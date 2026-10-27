@@ -4,8 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LogIn</title>
+    <link rel="stylesheet" th:href="@{/css/login.css}">
 </head>
 <body>
     <h1>Log in</h1>
+    <form action="">
+        <div>
+            <label for="name">Username:</label>
+            <input type="text" name="name" id="name" required>
+            <p th:text="${errorUsername}"></p>
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input type="text" name="password" id="password" required>
+            <p th:text="${errorPassword}"></p>
+        </div>
+        <div>
+            <button type="submit">Enviar</button>
+        </div>
+    </form>
 </body>
 </html>

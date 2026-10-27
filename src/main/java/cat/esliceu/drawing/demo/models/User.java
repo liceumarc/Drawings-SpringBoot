@@ -2,9 +2,9 @@ package cat.esliceu.drawing.demo.models;
 
 public class User {
     String name;
-    int password;
+    String password;
 
-    public User(String name, int password) {
+    public User(String name, String password) {
         this.name = name;
         this.password = password;
     }
@@ -17,12 +17,11 @@ public class User {
         this.name = name;
     }
 
-    public int getPassword() {
+    public String getPassword() {
         return password;
     }
 
-    public void setPassword(int password) {
+    public void setPassword(String password) {
         this.password = password;
     }
-
 }

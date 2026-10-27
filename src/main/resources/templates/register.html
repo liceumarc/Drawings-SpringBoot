@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register</title>
+    <link rel="stylesheet" th:href="@{/css/login-register.css}">
+</head>
+<body>
+    <h1>Register</h1>
+    <form action="post">
+        <div>
+            <label for="name">New Username:</label>
+            <input type="text" name="name" id="name" required>
+            <p th:text="${requirementsUsername}"></p>
+        </div>
+        <div>
+            <label for="password">New Password</label>
+            <input type="text" name="password" id="password" required>
+            <p th:text="${requirementsPassword}"></p>
+        </div>
+        <div>
+            <button type="submit">Enviar</button>
+        </div>
+    </form>
+</body>
+</html>
