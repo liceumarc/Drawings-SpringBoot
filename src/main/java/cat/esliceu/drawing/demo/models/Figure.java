@@ -1,7 +1,9 @@
 package cat.esliceu.drawing.demo.models;
 
 
-public abstract class Figure {
+import java.util.List;
+
+public class Figure {
 
     private enum typeFigure {
         CIRCLE,
@@ -11,20 +13,19 @@ public abstract class Figure {
         POLYGON,
         LINE,
         ELLIPSE,
+        OTHER
     }
 
     private String name;
     private typeFigure type;
-    private int coordX;
-    private int coordY;
+    private List<Point> points;
     private String color;
     private int size;
 
-    public Figure(String name, typeFigure type, int coordX, int coordY, String color, int size) {
+    public Figure(String name, typeFigure type, List<Point> points, String color, int size) {
         this.name = name;
         this.type = type;
-        this.coordX = coordX;
-        this.coordY = coordY;
+        this.points = points;
         this.color = color;
         this.size = size;
     }
@@ -45,22 +46,6 @@ public abstract class Figure {
         this.type = type;
     }
 
-    public int getCoordX() {
-        return coordX;
-    }
-
-    public void setCoordX(int coordX) {
-        this.coordX = coordX;
-    }
-
-    public int getCoordY() {
-        return coordY;
-    }
-
-    public void setCoordY(int coordY) {
-        this.coordY = coordY;
-    }
-
     public String getColor() {
         return color;
     }
@@ -75,5 +60,13 @@ public abstract class Figure {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public List<Point> getPoints() {
+        return points;
+    }
+
+    public void setPoints(List<Point> points) {
+        this.points = points;
     }
 }
