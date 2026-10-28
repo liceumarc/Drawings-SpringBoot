@@ -2,16 +2,21 @@ package cat.esliceu.drawing.demo.services;
 
 import cat.esliceu.drawing.demo.models.User;
 import cat.esliceu.drawing.demo.repository.UserRepo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 @Service
 public class LoginService {
 
-    @Autowired
-    UserRepo userRepo;
+    private final UserRepo userRepo;
 
-    public boolean checkLogin(String username, int password){
-        return true;
+    public LoginService(UserRepo userRepo) {
+        this.userRepo = userRepo;
+    }
+
+    public boolean checkLogin(String username, String password) {
+        User user = userRepo.findByUserName(username);
+        return user != null && Objects.equals(user.getPassword(), password);
     }
 }

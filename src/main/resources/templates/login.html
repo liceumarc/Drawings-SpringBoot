@@ -1,27 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LogIn</title>
-    <link rel="stylesheet" th:href="@{/css/login.css}">
+    <title>Iniciar sesión</title>
+    <link rel="stylesheet" th:href="@{/css/login-register.css}">
 </head>
 <body>
-    <h1>Log in</h1>
-    <form action="">
+
+    <h1>Iniciar sesión</h1>
+
+    <form th:action="@{/login}" th:object="${loginForm}" method="post">
+
         <div>
-            <label for="name">Username:</label>
-            <input type="text" name="name" id="name" required>
-            <p th:text="${errorUsername}"></p>
+            <label for="username">Nombre de usuario:</label>
+            <input type="text" th:field="*{username}" id="username">
+            <p th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></p>
         </div>
         <div>
-            <label for="password">Password</label>
-            <input type="text" name="password" id="password" required>
-            <p th:text="${errorPassword}"></p>
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password">
+            <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
         </div>
+
+        <p th:if="${#fields.hasGlobalErrors()}" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></p>
         <div>
-            <button type="submit">Enviar</button>
+            <button type="submit">Entrar</button>
         </div>
     </form>
+
+    <p>¿Todavía no tienes cuenta? <a th:href="@{/register}">Regístrate</a></p>
 </body>
 </html>

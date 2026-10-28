@@ -1,11 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Paint</title>
+    <title>Dibujar</title>
 </head>
 <body>
-    <h1>Paint</h1>
+    <h1>Bienvenido, <span th:text="${session.authenticatedUsername}"></span></h1>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Cerrar sesión</button>
+    </form>
 </body>
 </html>

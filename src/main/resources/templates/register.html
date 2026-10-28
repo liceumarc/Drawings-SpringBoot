@@ -1,27 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Register</title>
+    <title>Registro</title>
     <link rel="stylesheet" th:href="@{/css/login-register.css}">
 </head>
 <body>
-    <h1>Register</h1>
-    <form action="post">
+    <h1>Crear cuenta</h1>
+    <form th:action="@{/register}" th:object="${registerForm}" method="post">
         <div>
-            <label for="name">New Username:</label>
-            <input type="text" name="name" id="name" required>
-            <p th:text="${requirementsUsername}"></p>
+            <label for="username">Nombre de usuario:</label>
+            <input type="text" id="username" th:field="*{username}" required>
+            <p th:if="${#fields.hasErrors('username')}" th:errors="*{username}" role="alert"></p>
         </div>
         <div>
-            <label for="password">New Password</label>
-            <input type="text" name="password" id="password" required>
-            <p th:text="${requirementsPassword}"></p>
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password" required>
+            <p>Entre 4 y 10 caracteres, con mayúscula, minúscula y número.</p>
+            <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}" role="alert"></p>
         </div>
         <div>
-            <button type="submit">Enviar</button>
+            <button type="submit">Registrarse</button>
         </div>
     </form>
+    <p>¿Ya tienes cuenta? <a th:href="@{/login}">Inicia sesión</a></p>
 </body>
 </html>
