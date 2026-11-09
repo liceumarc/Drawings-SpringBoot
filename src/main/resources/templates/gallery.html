@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Galería')}"></head>
+<body class="min-h-screen bg-slate-100">
+
+<nav th:replace="~{fragments/layout :: navbar('gallery')}"></nav>
+
+<main class="mx-auto max-w-6xl px-4 py-8">
+
+    <h1 class="text-2xl font-bold text-slate-800">Galería</h1>
+    <p class="mt-1 text-sm text-slate-600">Dibujos enviados por todos los usuarios.</p>
+
+    <p th:if="${message != null}" th:text="${message}" role="status"
+       class="mt-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">Mensaje</p>
+
+    <div th:if="${#lists.isEmpty(entries)}" class="mt-6 rounded-2xl bg-white p-8 text-center shadow">
+        <p class="text-slate-600">Todavía no se ha enviado ningún dibujo.</p>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(entries)}" class="mt-6 overflow-x-auto rounded-2xl bg-white shadow">
+        <table class="w-full min-w-[44rem] text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+            <tr>
+                <th scope="col" class="px-4 py-3 font-semibold">Nombre</th>
+                <th scope="col" class="px-4 py-3 font-semibold">Autor</th>
+                <th scope="col" class="px-4 py-3 font-semibold">Objetos</th>
+                <th scope="col" class="px-4 py-3 font-semibold">Creado</th>
+                <th scope="col" class="px-4 py-3 font-semibold">Modificado</th>
+                <th scope="col" class="px-4 py-3 text-right font-semibold">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${entries}" class="border-t border-slate-100">
+                <td class="px-4 py-3 font-medium text-slate-800" th:text="${entry.drawing.name}">Nombre</td>
+                <td class="px-4 py-3 text-slate-600">
+                    <span th:text="${entry.authorName}">Autor</span>
+                    <span th:if="${entry.mine}"
+                          class="ml-1 rounded bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-700">tú</span>
+                </td>
+                <td class="px-4 py-3 text-slate-600" th:text="${entry.drawing.objectCount}">0</td>
+                <td class="px-4 py-3 text-slate-600"
+                    th:text="${#temporals.format(entry.drawing.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                <td class="px-4 py-3 text-slate-600"
+                    th:text="${#temporals.format(entry.drawing.updatedAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                <td class="px-4 py-3">
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <a th:href="@{/drawings/{id}(id=${entry.drawing.id})}"
+                           class="rounded bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700">Ver dibujo</a>
+                        <!-- Only the owner sees the button; the service checks it again on the server -->
+                        <form th:if="${entry.mine}"
+                              th:action="@{/drawings/{id}/delete(id=${entry.drawing.id})}" method="post"
+                              onsubmit="return confirm('¿Seguro que quieres borrar este dibujo?')">
+                            <input type="hidden" name="from" value="gallery">
+                            <button type="submit"
+                                    class="rounded bg-red-600 px-3 py-1.5 text-white hover:bg-red-700">Borrar</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Editor')}"></head>
+<body class="min-h-screen bg-slate-100">
+
+<nav th:replace="~{fragments/layout :: navbar(${mode == 'new' ? 'new' : (mode == 'edit' ? 'mine' : 'gallery')})}"></nav>
+
+<!--/*
+    The server hands its data to the JavaScript through data-* attributes (no fetch).
+    th:with keeps the repeated Tailwind classes in variables so they are not copied everywhere.
+*/-->
+<main id="editor" class="mx-auto max-w-7xl px-4 py-6"
+      th:with="label='block text-sm font-medium text-slate-700',
+               field='mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100',
+               tool='rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40'"
+      th:data-mode="${mode}"
+      th:data-user="${session.authenticatedUsername}"
+      th:data-drawing-id="${drawing?.id}"
+      th:data-name="${drawing?.name}"
+      th:data-width="${drawing?.width}"
+      th:data-height="${drawing?.height}"
+      th:data-objects="${drawing?.json}"
+      th:data-save-succeeded="${message == 'Dibujo enviado correctamente.' or message == 'Dibujo actualizado correctamente.'}">
+
+    <!-- Title and send buttons -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-bold text-slate-800">
+            <span th:if="${mode == 'new'}">Nuevo dibujo</span>
+            <span th:if="${mode == 'edit'}" th:text="'Editar: ' + ${drawing.name}">Editar</span>
+            <span th:if="${mode == 'view'}" th:text="${drawing.name}">Dibujo</span>
+        </h1>
+
+        <!--/* Only hidden fields and buttons. The JavaScript fills the fields when the form is submitted. */-->
+        <form id="send-form" th:if="${mode != 'view'}" method="post"
+              th:action="${mode == 'new'} ? @{/drawings} : @{/drawings/{id}(id=${drawing.id})}"
+              class="flex flex-wrap gap-2">
+            <input type="hidden" id="field-name" name="name">
+            <input type="hidden" id="field-width" name="width">
+            <input type="hidden" id="field-height" name="height">
+            <input type="hidden" id="field-objectCount" name="objectCount">
+            <input type="hidden" id="field-drawingJson" name="drawingJson">
+
+            <button type="submit" th:if="${mode == 'new'}"
+                    title="Guarda este dibujo en el servidor como un dibujo nuevo"
+                    class="rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">
+                Enviar dibujo
+            </button>
+            <button type="submit" th:if="${mode == 'edit'}"
+                    title="Guarda los cambios en este dibujo del servidor"
+                    class="rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">
+                Guardar cambios
+            </button>
+            <button type="submit" th:if="${mode == 'edit'}"
+                    th:formaction="@{/drawings/{id}/copy(id=${drawing.id})}"
+                    title="Guarda este contenido como un dibujo nuevo y deja el original como está"
+                    class="rounded-lg bg-slate-700 px-4 py-2 font-semibold text-white hover:bg-slate-800">
+                Enviar como copia
+            </button>
+        </form>
+
+        <a th:if="${mode == 'view'}" th:href="@{/drawings/gallery}"
+           class="rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">
+            Volver a la galería
+        </a>
+    </div>
+
+    <!-- Messages sent by the controller (flash attributes) -->
+    <p th:if="${message != null}" role="status"
+       class="mt-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">
+        <span th:text="${message}">Mensaje</span>
+        <a th:if="${createdId != null}" th:href="@{/drawings/{id}(id=${createdId})}"
+           class="ml-1 font-semibold underline">Ver el dibujo enviado</a>
+    </p>
+    <p th:if="${errorMessage != null}" th:text="${errorMessage}" role="alert"
+       class="mt-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-800">Error</p>
+    <p th:if="${mode == 'view'}" class="mt-4 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-800">
+        Solo lectura. Este dibujo es de <strong th:text="${authorName}">autor</strong>.
+    </p>
+
+    <!-- The draft stays in this browser; sending it to the server is explicit. -->
+    <div th:if="${mode != 'view'}" class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+        <span id="save-status" role="status" class="text-slate-500">
+            Borrador local; pulsa Enviar para guardarlo en el servidor
+        </span>
+        <span id="dirty-badge" th:if="${mode == 'edit'}"
+              class="hidden rounded bg-amber-100 px-2 py-1 text-amber-800">Cambios sin enviar al servidor</span>
+        <button type="button" id="btn-discard" th:class="${tool}"
+                th:title="${mode == 'edit'} ? 'Borra el borrador de este navegador y vuelve a la versión guardada en el servidor' : 'Borra el borrador de este navegador y empieza un dibujo vacío'"
+                th:text="${mode == 'edit'} ? 'Descartar cambios' : 'Vaciar borrador'">Descartar</button>
+    </div>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
+
+        <!-- Left: toolbar and canvas -->
+        <section aria-label="Lienzo">
+            <div th:if="${mode != 'view'}" class="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 shadow">
+                <button type="button" data-tool="select" th:class="${tool}" title="Seleccionar y mover objetos">Seleccionar</button>
+                <button type="button" data-tool="circle" th:class="${tool}" title="Dibujar un círculo">Círculo</button>
+                <button type="button" data-tool="square" th:class="${tool}" title="Dibujar un cuadrado">Cuadrado</button>
+                <button type="button" data-tool="triangle" th:class="${tool}" title="Dibujar un triángulo">Triángulo</button>
+                <button type="button" data-tool="star" th:class="${tool}" title="Dibujar una estrella de 7 puntas">Estrella</button>
+                <button type="button" data-tool="freehand" th:class="${tool}" title="Dibujar a mano alzada">Mano alzada</button>
+                <button type="button" data-tool="polyline" th:class="${tool}"
+                        title="Haz clic para añadir puntos; doble clic o Enter para terminar; Escape cancela">Línea</button>
+
+                <label class="flex items-center gap-1 text-sm text-slate-600" title="Color de relleno de las figuras nuevas">
+                    Relleno
+                    <input type="color" id="tool-fill"
+                           class="h-8 w-9 cursor-pointer rounded border border-slate-300 bg-white p-0.5">
+                </label>
+                <label class="flex items-center gap-1 text-sm text-slate-600" title="Color del borde de las figuras nuevas">
+                    Borde
+                    <input type="color" id="tool-stroke"
+                           class="h-8 w-9 cursor-pointer rounded border border-slate-300 bg-white p-0.5">
+                </label>
+
+                <span class="mx-1 hidden h-6 w-px bg-slate-300 sm:inline-block"></span>
+
+                <button type="button" id="btn-undo" th:class="${tool}" title="Deshacer (Ctrl+Z)">Deshacer</button>
+                <button type="button" id="btn-redo" th:class="${tool}" title="Rehacer (Ctrl+Y)">Rehacer</button>
+                <button type="button" id="btn-clear"
+                        class="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-40"
+                        title="Elimina todos los objetos del dibujo">Borrar todo</button>
+            </div>
+
+            <div class="mt-3 overflow-auto rounded-2xl bg-white p-2 shadow">
+                <!--/* width and height are the LOGICAL size; the CSS only scales how it looks on screen */-->
+                <canvas id="canvas" width="800" height="600"
+                        class="mx-auto block h-auto max-w-full rounded border border-slate-300 bg-white"></canvas>
+            </div>
+            <p id="canvas-info" class="mt-2 text-xs text-slate-500">Lienzo lógico: 800 × 600 px</p>
+        </section>
+
+        <!-- Right: panels -->
+        <aside class="space-y-4">
+
+            <section class="rounded-2xl bg-white p-4 shadow">
+                <h2 class="font-semibold text-slate-800">Dibujo</h2>
+                <div class="mt-2">
+                    <label for="drawing-name" th:class="${label}">Nombre</label>
+                    <input type="text" id="drawing-name" maxlength="50" th:class="${field}"
+                           th:disabled="${mode == 'view'}" placeholder="Vacío = nombre aleatorio">
+                </div>
+                <div class="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="canvas-width" th:class="${label}">Ancho (px)</label>
+                        <input type="number" id="canvas-width" min="100" max="2000" th:class="${field}"
+                               th:disabled="${mode == 'view'}">
+                    </div>
+                    <div>
+                        <label for="canvas-height" th:class="${label}">Alto (px)</label>
+                        <input type="number" id="canvas-height" min="100" max="2000" th:class="${field}"
+                               th:disabled="${mode == 'view'}">
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-2xl bg-white p-4 shadow">
+                <h2 class="font-semibold text-slate-800">Objetos <span id="objects-count" class="font-normal text-slate-500">(0)</span></h2>
+                <p id="objects-empty" class="mt-2 text-sm text-slate-500">Todavía no hay ningún objeto.</p>
+                <ul id="objects-list" class="mt-2 max-h-60 space-y-1 overflow-y-auto"></ul>
+            </section>
+
+            <section th:if="${mode != 'view'}" class="rounded-2xl bg-white p-4 shadow">
+                <h2 class="font-semibold text-slate-800">Propiedades</h2>
+                <p id="props-empty" class="mt-2 text-sm text-slate-500">
+                    Selecciona un objeto (en la lista o en el lienzo) para editarlo.
+                </p>
+                <div id="props-form" class="mt-2 hidden space-y-3">
+                    <div>
+                        <label for="prop-name" th:class="${label}">Nombre</label>
+                        <input type="text" id="prop-name" maxlength="50" th:class="${field}">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="prop-x" th:class="${label}">Centro X</label>
+                            <input type="number" id="prop-x" th:class="${field}">
+                        </div>
+                        <div>
+                            <label for="prop-y" th:class="${label}">Centro Y</label>
+                            <input type="number" id="prop-y" th:class="${field}">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="prop-size" th:class="${label}">Tamaño</label>
+                            <input type="number" id="prop-size" min="1" th:class="${field}">
+                        </div>
+                        <div>
+                            <label for="prop-rotation" th:class="${label}">Rotación (0-360°)</label>
+                            <input type="number" id="prop-rotation" min="0" max="360" th:class="${field}">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="prop-fill" th:class="${label}">Relleno</label>
+                            <input type="color" id="prop-fill"
+                                   class="mt-1 h-9 w-full cursor-pointer rounded border border-slate-300 bg-white p-1">
+                        </div>
+                        <div>
+                            <label for="prop-stroke" th:class="${label}">Borde</label>
+                            <input type="color" id="prop-stroke"
+                                   class="mt-1 h-9 w-full cursor-pointer rounded border border-slate-300 bg-white p-1">
+                        </div>
+                    </div>
+                    <button type="button" id="btn-delete-selected"
+                            class="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                        Eliminar este objeto
+                    </button>
+                </div>
+            </section>
+
+            <section th:if="${mode != 'view'}" class="rounded-2xl bg-white p-4 shadow">
+                <h2 class="font-semibold text-slate-800">Historial de cambios</h2>
+                <p id="history-empty" class="mt-2 text-sm text-slate-500">Todavía no has hecho ningún cambio.</p>
+                <ol id="history-list" class="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm text-slate-700"></ol>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<script type="module" th:src="@{/js/editor/main.js}"></script>
+</body>
+</html>

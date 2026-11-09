@@ -1,8 +1,7 @@
 package cat.esliceu.drawing.demo.controllers;
 
-import cat.esliceu.drawing.demo.models.User;
 import cat.esliceu.drawing.demo.others.RegisterForm;
-import cat.esliceu.drawing.demo.repository.UserRepo;
+import cat.esliceu.drawing.demo.services.RegisterService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -13,10 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 @Controller
 public class RegisterController {
 
-    private final UserRepo userRepo;
+    private final RegisterService registerService;
 
-    public RegisterController(UserRepo userRepo) {
-        this.userRepo = userRepo;
+    public RegisterController(RegisterService registerService) {
+        this.registerService = registerService;
     }
 
     @GetMapping("/register")
@@ -30,8 +29,12 @@ public class RegisterController {
             return "register";
         }
 
-        User user = new User(registerForm.getUsername().trim(), registerForm.getPassword());
-        if (!userRepo.register(user)) {
+        boolean registered = registerService.register(
+                registerForm.getName(),
+                registerForm.getUsername(),
+                registerForm.getPassword());
+
+        if (!registered) {
             bindingResult.rejectValue("username", "duplicate", "Ese nombre de usuario ya está registrado");
             return "register";
         }

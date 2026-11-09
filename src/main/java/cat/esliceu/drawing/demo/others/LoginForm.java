@@ -1,7 +1,6 @@
 package cat.esliceu.drawing.demo.others;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public class LoginForm {
 

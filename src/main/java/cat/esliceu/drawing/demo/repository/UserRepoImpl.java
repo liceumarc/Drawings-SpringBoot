@@ -6,14 +6,18 @@ import org.springframework.stereotype.Repository;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * In-memory implementation of {@link UserRepo}.
+ * Data is lost when the server restarts, as the assignment allows.
+ */
 @Repository
 public class UserRepoImpl implements UserRepo {
 
     private final ConcurrentMap<String, User> users = new ConcurrentHashMap<>();
 
     public UserRepoImpl() {
-        users.put("root", new User("root", "Root123"));
-        users.put("marc", new User("marc", "Marc123"));
+        users.put("root", new User("Administrator", "root", "Root123"));
+        users.put("marc", new User("Marc", "marc", "Marc123"));
     }
 
     @Override

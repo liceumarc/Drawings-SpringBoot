@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<!-- HEAD shared by every page: meta tags, title and Tailwind -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · Drawings'">Drawings</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+
+<body>
+
+<nav th:fragment="navbar(active)" class="bg-indigo-600 text-white shadow">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3">
+
+        <a th:href="@{/drawings}" class="text-lg font-bold">Drawings</a>
+
+        <div class="flex flex-wrap items-center gap-1 text-sm">
+            <a th:href="@{/drawings}"
+               class="rounded px-3 py-2 hover:bg-indigo-500"
+               th:classappend="${active == 'mine'} ? 'bg-indigo-800'">Mis dibujos</a>
+            <a th:href="@{/drawings/gallery}"
+               class="rounded px-3 py-2 hover:bg-indigo-500"
+               th:classappend="${active == 'gallery'} ? 'bg-indigo-800'">Galería</a>
+            <a th:href="@{/drawings/new}"
+               class="rounded px-3 py-2 hover:bg-indigo-500"
+               th:classappend="${active == 'new'} ? 'bg-indigo-800'">Nuevo dibujo</a>
+
+            <span class="hidden px-3 text-indigo-200 sm:inline"
+                  th:text="${session.authenticatedUsername}">usuario</span>
+
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="rounded bg-indigo-800 px-3 py-2 hover:bg-indigo-900">
+                    Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+</body>
+</html>
