@@ -16,6 +16,6 @@ Este almacenamiento y las contraseñas sin cifrar son únicamente adecuados para
 
 ## Editor
 
-El editor permite crear círculos, cuadrados, triángulos, estrellas de siete puntas, trazos a mano alzada y líneas. Los borradores, las dimensiones y el historial de deshacer/rehacer se conservan en `localStorage`, separados por usuario y dibujo. Los cambios se envían al servidor únicamente al pulsar «Enviar dibujo» o «Guardar cambios»; el envío usa el formulario normal y vuelve a cargar la página.
+El editor permite crear círculos, cuadrados, triángulos, estrellas de siete puntas y trazos a mano alzada. Los borradores, las dimensiones y el historial de deshacer/rehacer se conservan en `localStorage`, separados por usuario y dibujo. Los cambios se envían al servidor únicamente al pulsar «Enviar dibujo» o «Guardar cambios»; el envío usa el formulario normal y vuelve a cargar la página.
 
-Para terminar una línea, haz doble clic o pulsa Enter; Escape cancela el trazo pendiente. Ctrl+Z deshace y Ctrl+Y o Ctrl+Mayús+Z rehace.
+Ctrl+Z deshace y Ctrl+Y o Ctrl+Mayús+Z rehace.

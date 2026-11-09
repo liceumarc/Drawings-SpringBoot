@@ -4,11 +4,10 @@ export const TYPE_LABELS = Object.freeze({
     triangle: 'Triángulo',
     star: 'Estrella',
     freehand: 'Dibujo a mano alzada',
-    polyline: 'Línea',
 });
 
 export const SHAPE_TYPES = Object.keys(TYPE_LABELS);
-export const PATH_TYPES = Object.freeze(['freehand', 'polyline']);
+export const PATH_TYPES = Object.freeze(['freehand']);
 export const DEFAULT_FILL = '#818cf8';
 export const DEFAULT_STROKE = '#312e81';
 export const MIN_SHAPE_SIZE = 1;
@@ -26,13 +25,12 @@ const MAX_PATH_POINTS = 2500;
 const COORDINATE_LIMIT = 100000;
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const HIT_MARGIN = 4;
-const SELECTION_PADDING = 6;
 
 export function isPathType(type) {
     return PATH_TYPES.includes(type);
 }
 
-export function createShape(type, x, y, existing, fill, stroke) {
+export function createShape(type, x, y, existing, fill) {
     if (!Object.hasOwn(DEFAULT_SIZES, type)) {
         throw new TypeError(`Unsupported shape type: ${type}`);
     }
@@ -46,11 +44,11 @@ export function createShape(type, x, y, existing, fill, stroke) {
         size: DEFAULT_SIZES[type],
         rotation: 0,
         fill,
-        stroke,
+        stroke: DEFAULT_STROKE,
     };
 }
 
-export function createPathShape(type, points, existing, stroke) {
+export function createPathShape(type, points, existing) {
     if (!isPathType(type)) {
         throw new TypeError(`Unsupported path type: ${type}`);
     }
@@ -86,7 +84,7 @@ export function createPathShape(type, points, existing, stroke) {
         size: storedSize,
         rotation: 0,
         fill: DEFAULT_FILL,
-        stroke: cleanColor(stroke, DEFAULT_STROKE),
+        stroke: DEFAULT_STROKE,
         points: cleanPoints.map((point) => ({
             x: roundCoordinate((point.x - x) / storedSize),
             y: roundCoordinate((point.y - y) / storedSize),
@@ -150,30 +148,6 @@ export function findShapeAt(ctx, shapes, x, y) {
         }
     }
     return null;
-}
-
-export function drawSelection(ctx, shape) {
-    const bounds = localBounds(shape);
-    ctx.save();
-    ctx.translate(shape.x, shape.y);
-    ctx.rotate(toRadians(shape.rotation));
-    ctx.strokeStyle = '#2563eb';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(
-        bounds.minX - SELECTION_PADDING,
-        bounds.minY - SELECTION_PADDING,
-        bounds.maxX - bounds.minX + 2 * SELECTION_PADDING,
-        bounds.maxY - bounds.minY + 2 * SELECTION_PADDING,
-    );
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.moveTo(-6, 0);
-    ctx.lineTo(6, 0);
-    ctx.moveTo(0, -6);
-    ctx.lineTo(0, 6);
-    ctx.stroke();
-    ctx.restore();
 }
 
 export function drawGesture(ctx, points, color, closed = false) {
@@ -305,35 +279,6 @@ function toLocalPoint(shape, x, y) {
     };
 }
 
-function localBounds(shape) {
-    if (isPathType(shape.type)) {
-        const xs = shape.points.map((point) => point.x * shape.size);
-        const ys = shape.points.map((point) => point.y * shape.size);
-        return boundsOf(xs, ys);
-    }
-    if (shape.type === 'circle') {
-        return { minX: -shape.size, minY: -shape.size, maxX: shape.size, maxY: shape.size };
-    }
-    if (shape.type === 'square') {
-        const half = shape.size / 2;
-        return { minX: -half, minY: -half, maxX: half, maxY: half };
-    }
-
-    const points = polygonPoints(shape);
-    return boundsOf(points.map(([x]) => x), points.map(([, y]) => y));
-}
-
-function polygonPoints(shape) {
-    const count = shape.type === 'triangle' ? 3 : STAR_POINTS * 2;
-    return Array.from({ length: count }, (_, index) => {
-        const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
-        const radius = shape.type === 'star' && index % 2 !== 0
-            ? shape.size * STAR_INNER_RATIO
-            : shape.size;
-        return [Math.cos(angle) * radius, Math.sin(angle) * radius];
-    });
-}
-
 function addRing(path, count, radiusAt) {
     for (let index = 0; index < count; index++) {
         const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
@@ -347,15 +292,6 @@ function addRing(path, count, radiusAt) {
         }
     }
     path.closePath();
-}
-
-function boundsOf(xs, ys) {
-    return {
-        minX: Math.min(...xs),
-        minY: Math.min(...ys),
-        maxX: Math.max(...xs),
-        maxY: Math.max(...ys),
-    };
 }
 
 function cleanNumber(value, fallback, min, max) {

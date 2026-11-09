@@ -4,13 +4,11 @@ import {
     DEFAULT_STROKE,
     MAX_SHAPE_SIZE,
     MIN_SHAPE_SIZE,
-    PATH_TYPES,
     TYPE_LABELS,
     cleanColor,
     createPathShape,
     createShape,
     drawGesture,
-    drawSelection,
     drawShape,
     findShapeAt,
     isPathType,
@@ -22,9 +20,8 @@ const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 600;
 const MIN_CANVAS_SIZE = 100;
 const MAX_CANVAS_SIZE = 2000;
-const MAX_HISTORY_ENTRIES = 50;
-const MIN_POINTER_DISTANCE = 1.5;
-const TOOLS = Object.freeze(['select', 'circle', 'square', 'triangle', 'star', ...PATH_TYPES]);
+const MAX_HISTORY_ENTRIES = 4;
+const TOOLS = Object.freeze(['select', 'circle', 'square', 'triangle', 'star', 'freehand']);
 const ACTIVE_TOOL_CLASSES = [
     'border-indigo-600',
     'bg-indigo-600',
@@ -67,7 +64,6 @@ class DrawingEditor {
         this.history = this.restoreHistory(this.draft);
         this.drag = null;
         this.gesture = null;
-        this.pendingLine = null;
         this.pendingPropertyEdit = null;
 
         this.syncInputs();
@@ -91,15 +87,12 @@ class DrawingEditor {
             objectsList: requireElement('objects-list'),
             objectsCount: requireElement('objects-count'),
             objectsEmpty: requireElement('objects-empty'),
-            historyList: this.readOnly ? null : requireElement('history-list'),
-            historyEmpty: this.readOnly ? null : requireElement('history-empty'),
             form: this.readOnly ? null : requireElement('send-form'),
             status: this.readOnly ? null : requireElement('save-status'),
             dirtyBadge: document.getElementById('dirty-badge'),
             discardButton: this.readOnly ? null : requireElement('btn-discard'),
             toolButtons: [...document.querySelectorAll('[data-tool]')],
             fill: document.getElementById('tool-fill'),
-            stroke: document.getElementById('tool-stroke'),
             clearButton: this.readOnly ? null : requireElement('btn-clear'),
             undoButton: this.readOnly ? null : requireElement('btn-undo'),
             redoButton: this.readOnly ? null : requireElement('btn-redo'),
@@ -107,7 +100,6 @@ class DrawingEditor {
             propsForm: this.readOnly ? null : requireElement('props-form'),
             propName: this.readOnly ? null : requireElement('prop-name'),
             propFill: this.readOnly ? null : requireElement('prop-fill'),
-            propStroke: this.readOnly ? null : requireElement('prop-stroke'),
             deleteSelected: this.readOnly ? null : requireElement('btn-delete-selected'),
             propNumbers: this.readOnly
                 ? {}
@@ -127,7 +119,6 @@ class DrawingEditor {
             selectedId: null,
             tool: 'select',
             fill: DEFAULT_FILL,
-            stroke: DEFAULT_STROKE,
         };
         if (!draft) {
             return state;
@@ -145,7 +136,6 @@ class DrawingEditor {
             state.tool = draft.tool;
         }
         state.fill = cleanColor(draft.fill, DEFAULT_FILL);
-        state.stroke = cleanColor(draft.stroke, DEFAULT_STROKE);
         if (state.objects.some((shape) => shape.id === draft.selectedId)) {
             state.selectedId = draft.selectedId;
         }
@@ -153,40 +143,23 @@ class DrawingEditor {
     }
 
     restoreHistory(draft) {
-        const entries = Array.isArray(draft?.history)
+        const snapshots = Array.isArray(draft?.history)
             ? draft.history
-                .map((entry) => this.cleanHistoryEntry(entry))
+                .map((entry) => this.cleanSnapshot(entry?.snapshot ?? entry))
                 .filter(Boolean)
                 .slice(-MAX_HISTORY_ENTRIES)
             : [];
         const index = Number.isInteger(draft?.historyIndex) ? draft.historyIndex : -1;
         const current = this.snapshot();
         if (
-            entries.length > 0
+            snapshots.length > 0
             && index >= 0
-            && index < entries.length
-            && sameSnapshot(entries[index].snapshot, current)
+            && index < snapshots.length
+            && sameSnapshot(snapshots[index], current)
         ) {
-            return { entries, index };
+            return { snapshots, index };
         }
-        return {
-            entries: [{ label: 'Estado inicial', timestamp: new Date().toISOString(), snapshot: current }],
-            index: 0,
-        };
-    }
-
-    cleanHistoryEntry(entry) {
-        if (!entry || typeof entry !== 'object' || typeof entry.label !== 'string') {
-            return null;
-        }
-        const snapshot = this.cleanSnapshot(entry.snapshot);
-        if (!snapshot) {
-            return null;
-        }
-        const timestamp = typeof entry.timestamp === 'string' && Number.isFinite(Date.parse(entry.timestamp))
-            ? entry.timestamp
-            : new Date().toISOString();
-        return { label: entry.label.slice(0, 100), timestamp, snapshot };
+        return { snapshots: [current], index: 0 };
     }
 
     cleanSnapshot(snapshot) {
@@ -221,21 +194,11 @@ class DrawingEditor {
         this.canvas.addEventListener('pointercancel', (event) => this.onPointerEnd(event));
 
         this.canvas.style.touchAction = 'none';
-        this.canvas.addEventListener('dblclick', (event) => {
-            if (this.state.tool === 'polyline' && this.pendingLine) {
-                event.preventDefault();
-                this.finishPolyline();
-            }
-        });
         this.elements.toolButtons.forEach((button) => {
             button.addEventListener('click', () => this.setTool(button.dataset.tool));
         });
         this.elements.fill.addEventListener('input', () => {
             this.state.fill = this.elements.fill.value;
-            this.persist();
-        });
-        this.elements.stroke.addEventListener('input', () => {
-            this.state.stroke = this.elements.stroke.value;
             this.persist();
         });
         this.elements.objectsList.addEventListener('click', (event) => this.onListClick(event));
@@ -254,7 +217,7 @@ class DrawingEditor {
             this.state.name = this.elements.name.value.slice(0, 50);
             this.persist();
         });
-        this.elements.name.addEventListener('change', () => this.recordChange('Cambiar nombre'));
+        this.elements.name.addEventListener('change', () => this.recordChange());
 
         for (const [input, key] of [
             [this.elements.width, 'width'],
@@ -276,14 +239,9 @@ class DrawingEditor {
         for (const [key, input] of Object.entries(this.elements.propNumbers)) {
             input.addEventListener('change', () => this.changeShapeNumber(key, input));
         }
-        for (const [input, key] of [
-            [this.elements.propFill, 'fill'],
-            [this.elements.propStroke, 'stroke'],
-        ]) {
-            input.addEventListener('focus', () => this.beginPropertyEdit());
-            input.addEventListener('input', () => this.previewShapeColor(key, input.value));
-            input.addEventListener('change', () => this.recordChange(`Cambiar ${key === 'fill' ? 'relleno' : 'borde'}`));
-        }
+        this.elements.propFill.addEventListener('focus', () => this.beginPropertyEdit());
+        this.elements.propFill.addEventListener('input', () => this.previewShapeFill(this.elements.propFill.value));
+        this.elements.propFill.addEventListener('change', () => this.recordChange());
         document.addEventListener('keydown', (event) => this.onKeyDown(event));
     }
 
@@ -295,10 +253,6 @@ class DrawingEditor {
         const point = this.pointFromEvent(event);
 
         if (this.readOnly) {
-            return;
-        }
-        if (this.state.tool === 'polyline') {
-            this.addPolylinePoint(point);
             return;
         }
         if (this.state.tool === 'freehand') {
@@ -349,13 +303,7 @@ class DrawingEditor {
         }
 
         if (this.gesture && event.pointerId === this.gesture.pointerId) {
-            this.addGesturePoint(point);
-            this.render();
-            return;
-        }
-
-        if (this.pendingLine) {
-            this.pendingLine.cursor = point;
+            this.gesture.points.push(point);
             this.render();
             return;
         }
@@ -371,9 +319,9 @@ class DrawingEditor {
             const shape = this.findShape(this.drag.shapeId);
             this.drag = null;
             if (event.type === 'pointerup' && shape) {
-                this.recordChange(`Mover ${shape.name}`);
+                this.recordChange();
             } else {
-                this.recordChange(`Mover ${shape?.name ?? 'objeto'}`);
+                this.recordChange();
             }
             this.canvas.style.cursor = 'grab';
             return;
@@ -388,11 +336,11 @@ class DrawingEditor {
             this.render();
             return;
         }
-        const shape = createPathShape('freehand', gesture.points, this.state.objects, this.state.stroke);
+        const shape = createPathShape('freehand', gesture.points, this.state.objects);
         if (shape) {
             this.state.objects.push(shape);
             this.state.selectedId = shape.id;
-            this.recordChange(`Dibujar ${shape.name}`);
+            this.recordChange();
         } else {
             this.render();
         }
@@ -404,48 +352,6 @@ class DrawingEditor {
         this.render();
     }
 
-    addGesturePoint(point) {
-        const points = this.gesture.points;
-        const last = points[points.length - 1];
-        if (Math.hypot(point.x - last.x, point.y - last.y) >= MIN_POINTER_DISTANCE) {
-            points.push(point);
-        }
-    }
-
-    addPolylinePoint(point) {
-        if (!this.pendingLine) {
-            this.pendingLine = { points: [point], cursor: point };
-        } else {
-            const points = this.pendingLine.points;
-            const last = points[points.length - 1];
-            if (Math.hypot(point.x - last.x, point.y - last.y) >= MIN_POINTER_DISTANCE) {
-                points.push(point);
-            }
-            this.pendingLine.cursor = point;
-        }
-        this.render();
-    }
-
-    finishPolyline() {
-        if (!this.pendingLine) {
-            return;
-        }
-        const shape = createPathShape(
-            'polyline',
-            this.pendingLine.points,
-            this.state.objects,
-            this.state.stroke,
-        );
-        this.pendingLine = null;
-        if (shape) {
-            this.state.objects.push(shape);
-            this.state.selectedId = shape.id;
-            this.recordChange(`Dibujar ${shape.name}`);
-        } else {
-            this.render();
-        }
-    }
-
     addRegularShape(point) {
         const shape = createShape(
             this.state.tool,
@@ -453,19 +359,15 @@ class DrawingEditor {
             point.y,
             this.state.objects,
             this.state.fill,
-            this.state.stroke,
         );
         this.state.objects.push(shape);
         this.state.selectedId = shape.id;
-        this.recordChange(`Añadir ${shape.name}`);
+        this.recordChange();
     }
 
     setTool(tool) {
         if (!TOOLS.includes(tool)) {
             return;
-        }
-        if (this.pendingLine) {
-            this.pendingLine = null;
         }
         this.state.tool = tool;
         this.renderTools();
@@ -502,7 +404,7 @@ class DrawingEditor {
         if (this.state.selectedId === id) {
             this.state.selectedId = null;
         }
-        this.recordChange(`Eliminar ${shape.name}`);
+        this.recordChange();
     }
 
     clearAll() {
@@ -511,7 +413,7 @@ class DrawingEditor {
         }
         this.state.objects = [];
         this.state.selectedId = null;
-        this.recordChange('Eliminar todos los objetos');
+        this.recordChange();
     }
 
     discardDraft() {
@@ -529,10 +431,9 @@ class DrawingEditor {
             selectedId: null,
             tool: 'select',
             fill: DEFAULT_FILL,
-            stroke: DEFAULT_STROKE,
         };
         this.history = {
-            entries: [{ label: 'Estado inicial', timestamp: new Date().toISOString(), snapshot: this.snapshot() }],
+            snapshots: [this.snapshot()],
             index: 0,
         };
         this.syncInputs();
@@ -553,7 +454,7 @@ class DrawingEditor {
         const previousShape = this.pendingPropertyEdit?.objects.find((item) => item.id === shape.id);
         shape.name = name || previousShape?.name || TYPE_LABELS[shape.type];
         this.elements.propName.value = shape.name;
-        this.recordChange('Cambiar nombre del objeto');
+        this.recordChange();
         this.pendingPropertyEdit = null;
     }
 
@@ -576,17 +477,17 @@ class DrawingEditor {
         const value = rules[key](typed);
         if (shape[key] !== value) {
             shape[key] = value;
-            this.recordChange(`Cambiar ${propertyLabel(key)} de ${shape.name}`);
+            this.recordChange();
         }
         input.value = String(shape[key]);
     }
 
-    previewShapeColor(key, value) {
+    previewShapeFill(value) {
         const shape = this.selectedShape();
         if (!shape) {
             return;
         }
-        shape[key] = cleanColor(value, shape[key]);
+        shape.fill = cleanColor(value, shape.fill);
         this.render();
         this.persist();
     }
@@ -599,12 +500,12 @@ class DrawingEditor {
         }
         this.state[key] = value;
         this.syncInputs();
-        this.recordChange('Cambiar dimensiones del lienzo');
+        this.recordChange();
     }
 
     commitPendingEdit() {
         const active = document.activeElement;
-        if (active instanceof HTMLInputElement && active !== this.elements.fill && active !== this.elements.stroke) {
+        if (active instanceof HTMLInputElement && active !== this.elements.fill) {
             active.blur();
         }
     }
@@ -616,19 +517,6 @@ class DrawingEditor {
             || target instanceof HTMLSelectElement
             || target?.isContentEditable;
 
-        if (this.state.tool === 'polyline' && this.pendingLine && !isTextEntry) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                this.finishPolyline();
-                return;
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.pendingLine = null;
-                this.render();
-                return;
-            }
-        }
         if (isTextEntry || !(event.ctrlKey || event.metaKey) || event.altKey) {
             return;
         }
@@ -650,15 +538,15 @@ class DrawingEditor {
             return;
         }
         this.history.index--;
-        this.applySnapshot(this.history.entries[this.history.index].snapshot);
+        this.applySnapshot(this.history.snapshots[this.history.index]);
     }
 
     redo() {
-        if (this.history.index >= this.history.entries.length - 1) {
+        if (this.history.index >= this.history.snapshots.length - 1) {
             return;
         }
         this.history.index++;
-        this.applySnapshot(this.history.entries[this.history.index].snapshot);
+        this.applySnapshot(this.history.snapshots[this.history.index]);
     }
 
     applySnapshot(snapshot) {
@@ -675,20 +563,16 @@ class DrawingEditor {
         this.persist();
     }
 
-    recordChange(label) {
+    recordChange() {
         const snapshot = this.snapshot();
-        const current = this.history.entries[this.history.index]?.snapshot;
+        const current = this.history.snapshots[this.history.index];
         if (!current || !sameSnapshot(current, snapshot)) {
-            this.history.entries = this.history.entries.slice(0, this.history.index + 1);
-            this.history.entries.push({
-                label,
-                timestamp: new Date().toISOString(),
-                snapshot,
-            });
-            if (this.history.entries.length > MAX_HISTORY_ENTRIES) {
-                this.history.entries.shift();
+            this.history.snapshots = this.history.snapshots.slice(0, this.history.index + 1);
+            this.history.snapshots.push(snapshot);
+            if (this.history.snapshots.length > MAX_HISTORY_ENTRIES) {
+                this.history.snapshots.shift();
             }
-            this.history.index = this.history.entries.length - 1;
+            this.history.index = this.history.snapshots.length - 1;
         }
         this.pendingPropertyEdit = null;
         this.renderAll();
@@ -714,23 +598,18 @@ class DrawingEditor {
             selectedId: this.state.selectedId,
             tool: this.state.tool,
             fill: this.state.fill,
-            stroke: this.state.stroke,
-            history: this.history.entries,
+            history: this.history.snapshots,
             historyIndex: this.history.index,
         });
-        this.updateStatus(
-            saved
-                ? 'Borrador guardado en este navegador'
-                : 'No se pudo guardar el borrador: revisa el almacenamiento del navegador',
-            !saved,
-        );
+        if (saved) {
+            this.updateStatus('Borrador guardado en este navegador');
+        }
     }
 
     renderAll() {
         this.render();
         this.renderList();
         this.renderProps();
-        this.renderHistory();
         this.renderTools();
         this.updateDirtyBadge();
         this.updateHistoryButtons();
@@ -749,16 +628,8 @@ class DrawingEditor {
         for (const shape of this.state.objects) {
             drawShape(this.context, shape);
         }
-        const selected = this.selectedShape();
-        if (selected) {
-            drawSelection(this.context, selected);
-        }
         if (this.gesture) {
-            drawGesture(this.context, this.gesture.points, this.state.stroke);
-        }
-        if (this.pendingLine) {
-            const points = [...this.pendingLine.points, this.pendingLine.cursor];
-            drawGesture(this.context, points, this.state.stroke);
+            drawGesture(this.context, this.gesture.points, DEFAULT_STROKE);
         }
     }
 
@@ -825,26 +696,8 @@ class DrawingEditor {
             setField(input, shape[key]);
         }
         setField(this.elements.propFill, shape.fill);
-        setField(this.elements.propStroke, shape.stroke);
         this.elements.propFill.disabled = isPathType(shape.type);
         this.elements.propFill.closest('div').classList.toggle('hidden', isPathType(shape.type));
-    }
-
-    renderHistory() {
-        if (this.readOnly) {
-            return;
-        }
-        const items = this.history.entries.map((entry, index) => {
-            const item = document.createElement('li');
-            item.className = index === this.history.index
-                ? 'rounded bg-indigo-50 px-2 py-1 font-medium text-indigo-800'
-                : 'rounded px-2 py-1 text-slate-600';
-            item.textContent = `${entry.label} · ${formatTime(entry.timestamp)}`;
-            item.setAttribute('aria-current', index === this.history.index ? 'step' : 'false');
-            return item;
-        });
-        this.elements.historyList.replaceChildren(...items);
-        this.elements.historyEmpty.classList.toggle('hidden', items.length > 0);
     }
 
     renderTools() {
@@ -866,16 +719,14 @@ class DrawingEditor {
             return;
         }
         this.elements.undoButton.disabled = this.history.index <= 0;
-        this.elements.redoButton.disabled = this.history.index >= this.history.entries.length - 1;
+        this.elements.redoButton.disabled = this.history.index >= this.history.snapshots.length - 1;
     }
 
-    updateStatus(text, failed = false) {
+    updateStatus(text) {
         if (this.readOnly || !this.elements?.status) {
             return;
         }
         this.elements.status.textContent = text;
-        this.elements.status.classList.toggle('text-red-600', failed);
-        this.elements.status.classList.toggle('text-slate-500', !failed);
     }
 
     updateDirtyBadge() {
@@ -903,7 +754,6 @@ class DrawingEditor {
         this.elements.canvasInfo.textContent = `Lienzo lógico: ${this.state.width} × ${this.state.height} px`;
         if (this.elements.fill) {
             this.elements.fill.value = this.state.fill;
-            this.elements.stroke.value = this.state.stroke;
         }
     }
 
@@ -981,23 +831,6 @@ function setField(input, value) {
     if (input.value !== text) {
         input.value = text;
     }
-}
-
-function propertyLabel(key) {
-    return {
-        x: 'centro X',
-        y: 'centro Y',
-        size: 'tamaño',
-        rotation: 'rotación',
-    }[key] ?? key;
-}
-
-function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
 }
 
 const root = document.getElementById('editor');
