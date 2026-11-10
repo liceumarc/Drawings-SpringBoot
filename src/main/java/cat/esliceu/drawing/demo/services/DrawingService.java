@@ -144,9 +144,11 @@ public class DrawingService {
      * Trims the name given by the user, or invents one such as "dibujo-a3f9" if it is empty.
      */
     private String resolveName(String name) {
-        if (name == null || name.isBlank()) {
-            return String.format("dibujo-%04x", ThreadLocalRandom.current().nextInt(0x10000));
+        if (name == null || name.trim().isEmpty()) {
+            int numero = (int) (Math.random() * 10000);
+            return "dibujo-" + numero;
         }
+
         return name.trim();
     }
 }
