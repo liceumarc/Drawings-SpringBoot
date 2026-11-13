@@ -8,12 +8,10 @@ import cat.esliceu.drawing.demo.others.DrawingNotFoundException;
 import cat.esliceu.drawing.demo.models.GalleryEntry;
 import cat.esliceu.drawing.demo.repository.DrawingRepo;
 import cat.esliceu.drawing.demo.repository.UserRepo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Business rules for drawings: anybody can view a drawing,
@@ -22,8 +20,6 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @Service
 public class DrawingService {
-
-    private static final Logger log = LoggerFactory.getLogger(DrawingService.class);
 
     private final DrawingRepo drawingRepo;
     private final UserRepo userRepo;
@@ -92,7 +88,6 @@ public class DrawingService {
                 form.getObjectCount(),
                 form.getDrawingJson());
         drawingRepo.save(drawing);
-        log.info("Drawing {} created by {}", drawing.getId(), username);
         return drawing;
     }
 
@@ -111,7 +106,6 @@ public class DrawingService {
                 form.getObjectCount(),
                 form.getDrawingJson());
         drawingRepo.save(drawing);
-        log.info("Drawing {} updated by {}", id, username);
         return drawing;
     }
 
@@ -124,7 +118,6 @@ public class DrawingService {
     public void delete(long id, String username) {
         getOwnedDrawing(id, username);
         drawingRepo.deleteById(id);
-        log.info("Drawing {} deleted by {}", id, username);
     }
 
     /**
@@ -134,7 +127,6 @@ public class DrawingService {
     private Drawing getOwnedDrawing(long id, String username) {
         Drawing drawing = getById(id);
         if (!isOwner(drawing, username)) {
-            log.warn("User {} tried to change drawing {} owned by {}", username, id, drawing.getOwner());
             throw new DrawingAccessDeniedException(id, username);
         }
         return drawing;

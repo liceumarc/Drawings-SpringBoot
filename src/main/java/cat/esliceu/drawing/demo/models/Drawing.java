@@ -78,6 +78,21 @@ public class Drawing {
         return createdAt;
     }
 
+    @Override
+    public String toString() {
+        return "Drawing{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", owner='" + owner + '\'' +
+                ", width=" + width +
+                ", height=" + height +
+                ", objectCount=" + objectCount +
+                ", json='" + json + '\'' +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }

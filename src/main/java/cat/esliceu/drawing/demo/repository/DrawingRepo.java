@@ -1,6 +1,7 @@
 package cat.esliceu.drawing.demo.repository;
 
 import cat.esliceu.drawing.demo.models.Drawing;
+import cat.esliceu.drawing.demo.models.DrawingElement;
 
 import java.util.List;
 
@@ -33,4 +34,9 @@ public interface DrawingRepo {
      * @return true if a drawing was removed, false if the id did not exist
      */
     boolean deleteById(long id);
+
+    /**
+     * Converts the drawing's JSON array into Java elements, including optional freehand points.
+     */
+    List<DrawingElement> mapJsonToElements(String json);
 }

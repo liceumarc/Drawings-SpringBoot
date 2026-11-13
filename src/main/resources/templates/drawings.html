@@ -17,6 +17,8 @@
 
     <p th:if="${message != null}" th:text="${message}" role="status"
        class="mt-4 rounded-lg bg-green-100 px-4 py-3 text-sm text-green-800">Mensaje</p>
+    <p th:if="${errorMessage != null}" th:text="${errorMessage}" role="alert"
+       class="mt-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-800">Error</p>
 
     <!-- Nothing sent yet -->
     <div th:if="${#lists.isEmpty(drawings)}" class="mt-6 rounded-2xl bg-white p-8 text-center shadow">

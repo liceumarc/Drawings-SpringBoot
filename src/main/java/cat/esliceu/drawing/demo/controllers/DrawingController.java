@@ -1,6 +1,7 @@
 package cat.esliceu.drawing.demo.controllers;
 
 import cat.esliceu.drawing.demo.models.Drawing;
+import cat.esliceu.drawing.demo.others.DrawingAccessDeniedException;
 import cat.esliceu.drawing.demo.others.DrawingForm;
 import cat.esliceu.drawing.demo.others.SessionKeys;
 import cat.esliceu.drawing.demo.services.DrawingService;
@@ -126,7 +127,17 @@ public class DrawingController {
                          @RequestParam(defaultValue = "mine") String from,
                          HttpSession session,
                          RedirectAttributes redirectAttributes) {
-        drawingService.delete(id, currentUser(session));
+
+        try {
+            drawingService.delete(id, currentUser(session));
+        } catch (DrawingAccessDeniedException e) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "No puedes borrar un dibujo que no es tuyo."
+            );
+            return "redirect:/drawings";
+        }
+
         redirectAttributes.addFlashAttribute("message", "Dibujo borrado correctamente.");
         return "gallery".equals(from) ? "redirect:/drawings/gallery" : "redirect:/drawings";
     }
