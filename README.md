@@ -1,21 +1,27 @@
-# Drawings-SpringBoot
+# Drawings
 
-## Registro e inicio de sesión
+Drawings es una aplicación web para crear, editar y compartir dibujos en un lienzo mediante el navegador.
 
-Ejecuta la aplicación con `.\mvnw.cmd spring-boot:run` y abre `http://localhost:8080`.
+## Funcionalidades
 
-- `/register`: crea una cuenta. La contraseña debe tener entre 5 y 10 caracteres, con al menos una mayúscula, una minúscula y un número.
-- `/login`: inicia sesión con una cuenta registrada.
-- `/drawings`: historial propio; `/drawings/gallery` muestra los dibujos de todos los usuarios.
-- `/drawings/new`: editor para crear dibujos; requiere una sesión iniciada.
-- El botón «Cerrar sesión» invalida la sesión.
+- Registro e inicio de sesión de usuarios.
+- Creación de dibujos con círculos, cuadrados, triángulos, estrellas y trazos a mano alzada.
+- Edición de objetos, colores, tamaño, posición y rotación.
+- Deshacer, rehacer y guardar borradores localmente.
+- Visualización de los dibujos propios y de la galería.
+- Copia, actualización y eliminación de dibujos propios.
+- Acceso a los dibujos ajenos en modo solo lectura.
 
-Hay dos cuentas iniciales: `root` / `Root123` y `marc` / `Marc123`.
-Las cuentas nuevas se guardan en memoria y se pierden al reiniciar la aplicación.
-Este almacenamiento y las contraseñas sin cifrar son únicamente adecuados para la práctica, no para producción.
+## Tecnologías
 
-## Editor
+- Java 25
+- Spring Boot
+- Spring MVC
+- Thymeleaf
+- Tailwind CSS
+- JavaScript y Canvas API
+- Maven
 
-El editor permite crear círculos, cuadrados, triángulos, estrellas de siete puntas y trazos a mano alzada. Los borradores, las dimensiones y el historial de deshacer/rehacer se conservan en `localStorage`, separados por usuario y dibujo. Los cambios se envían al servidor únicamente al pulsar «Enviar dibujo» o «Guardar cambios»; el envío usa el formulario normal y vuelve a cargar la página.
+## Persistencia
 
-Ctrl+Z deshace y Ctrl+Y o Ctrl+Mayús+Z rehace.
+Los usuarios y dibujos se almacenan en memoria mientras la aplicación está en ejecución.
