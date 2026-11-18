@@ -7,10 +7,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
 
-/**
- * Runs before every protected request and lets it through only if
- * a user is authenticated in the HttpSession.
- */
 public class AuthInterceptor implements HandlerInterceptor {
 
     @Override

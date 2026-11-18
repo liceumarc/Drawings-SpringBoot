@@ -11,11 +11,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * In-memory implementation of {@link DrawingRepo}.
- * Data is lost when the server restarts, as the assignment allows.
- */
-
 @Repository
 public class DrawingRepoImpl implements DrawingRepo {
 

@@ -6,9 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/**
- * Business logic for registering new users.
- */
 @Service
 public class RegisterService {
 
@@ -19,12 +16,6 @@ public class RegisterService {
     public RegisterService(UserRepo userRepo) {
         this.userRepo = userRepo;
     }
-
-    /**
-     * Creates and stores a new user. Name and username are trimmed; the password is kept as typed.
-     *
-     * @return true if the user was registered, false if the username already exists
-     */
 
     public boolean register(String name, String username, String password) {
         User user = new User(name.trim(), username.trim(), password);

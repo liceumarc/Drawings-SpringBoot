@@ -2,16 +2,11 @@ package cat.esliceu.drawing.demo.models;
 
 import java.time.LocalDateTime;
 
-/**
- * A drawing sent to the server by a user.
- * The content (the list of shapes) is kept as the JSON text produced by the browser editor.
- * The server does not interpret it: it only stores it and shows the number of objects.
- */
 public class Drawing {
 
-    private Long id; // null until the repository saves the drawing for the first time
+    private Long id; 
     private String name;
-    private final String owner; // login of the user who created the drawing
+    private final String owner; 
     private int width;
     private int height;
     private int objectCount;
@@ -30,9 +25,6 @@ public class Drawing {
         this.updatedAt = this.createdAt;
     }
 
-    /**
-     * Replaces the content of the drawing and refreshes the modification date.
-     */
     public void update(String name, int width, int height, int objectCount, String json) {
         this.name = name;
         this.width = width;

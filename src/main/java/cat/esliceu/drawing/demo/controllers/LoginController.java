@@ -23,7 +23,6 @@ public class LoginController {
 
     @GetMapping("/")
     public String root() {
-        // The interceptor sends anonymous users on to /login
         return "redirect:/drawings";
     }
 
@@ -43,7 +42,6 @@ public class LoginController {
             return "login";
         }
 
-        // Registration trims the username, so login must trim it too
         String username = loginForm.getUsername().trim();
 
         if (loginService.checkLogin(username, loginForm.getPassword())) {

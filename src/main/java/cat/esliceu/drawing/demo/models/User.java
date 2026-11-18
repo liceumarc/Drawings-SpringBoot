@@ -1,9 +1,5 @@
 package cat.esliceu.drawing.demo.models;
 
-/**
- * Registered user of the application.
- * The username is the login and the unique identifier; the name is the display name.
- */
 public class User {
 
     private final String username;

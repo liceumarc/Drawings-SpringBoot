@@ -4,10 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/**
- * Data submitted by the registration form.
- * Validated on the server with Bean Validation (@Valid in the controller).
- */
 public class RegisterForm {
 
     @NotBlank(message = "El nombre es obligatorio")

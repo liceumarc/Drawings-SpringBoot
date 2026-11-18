@@ -1,9 +1,5 @@
 package cat.esliceu.drawing.demo.models;
 
-/**
- * One row of the gallery: a drawing plus the data the page needs
- * that does not belong to the drawing itself (author's name, ownership).
- */
 public class GalleryEntry {
 
     private final Drawing drawing;
@@ -24,9 +20,6 @@ public class GalleryEntry {
         return authorName;
     }
 
-    /**
-     * @return true if the logged-in user owns this drawing (the page then shows the delete button)
-     */
     public boolean isMine() {
         return mine;
     }

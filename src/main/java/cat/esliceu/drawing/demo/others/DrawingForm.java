@@ -6,13 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/**
- * Data sent by the editor form when the user presses "Send".
- * The browser fills the hidden fields from its localStorage state.
- */
 public class DrawingForm {
 
-    // No @NotBlank: an empty name is allowed, the service assigns a random one
+    
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres")
     private String name;
 

@@ -18,13 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
-/**
- * Every page about drawings: my drawings, gallery and the editor.
- * It only receives the request, calls the service and chooses the view.
- * The rules (who can modify what) live in {@link DrawingService}.
- */
 @Controller
 @RequestMapping("/drawings")
 public class DrawingController {
@@ -53,9 +46,6 @@ public class DrawingController {
         return "editor";
     }
 
-    /**
-     * The owner gets the editor ("edit"); anybody else gets a read-only view ("view").
-     */
     @GetMapping("/{id}")
     public String openDrawing(@PathVariable long id, HttpSession session, Model model) {
         Drawing drawing = drawingService.getById(id);
@@ -99,10 +89,6 @@ public class DrawingController {
         return "redirect:/drawings/" + id;
     }
 
-    /**
-     * "Send as copy": stores the editor content as a brand new drawing
-     * and leaves the user in the original one.
-     */
     @PostMapping("/{id}/copy")
     public String copy(@PathVariable long id,
                        @Valid @ModelAttribute DrawingForm form,
@@ -114,16 +100,13 @@ public class DrawingController {
             return "redirect:/drawings/" + id;
         }
 
-        drawingService.getById(id); // 404 if the original does not exist
+        drawingService.getById(id); 
         Drawing copy = drawingService.create(currentUser(session), form);
         redirectAttributes.addFlashAttribute("message", "Copia enviada correctamente.");
         redirectAttributes.addFlashAttribute("createdId", copy.getId());
         return "redirect:/drawings/" + id;
     }
 
-    /**
-     * @param from where the delete button was pressed: "gallery" or (by default) "mine"
-     */
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable long id,
                          @RequestParam(defaultValue = "mine") String from,
